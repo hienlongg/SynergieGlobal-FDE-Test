@@ -1,13 +1,21 @@
 {
   "name": "bright-path-conflict-report",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
+  "type": "commonjs",
   "description": "Explainable tutor and room conflict detection for Bright Path Learning Centre.",
   "scripts": {
-    "start": "node src/server.js",
-    "test": "node --test"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prestart": "npm run build",
+    "start": "node dist/src/server.js",
+    "test": "npm run build && cd dist && node --test"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.30",
+    "typescript": "5.8.2"
   }
 }
