@@ -35,53 +35,6 @@ export interface SeedData {
   readonly tutors: ReadonlyMap<string, Tutor>;
 }
 
-export interface TimeRange {
-  readonly startMinutes: number;
-  readonly endMinutes: number;
-}
-
-export interface LessonSummary {
-  readonly lessonId: string;
-  readonly student: string;
-  readonly tutorId: string;
-  readonly roomId: string;
-  readonly status: LessonStatus;
-  readonly interval: string;
-  readonly note: string | null;
-}
-
-export interface TutorConflictResource {
-  readonly type: 'tutor';
-  readonly id: string;
-  readonly name: string;
-}
-
-export interface RoomConflictResource {
-  readonly type: 'room';
-  readonly id: string;
-}
-
-export type ConflictResource = TutorConflictResource | RoomConflictResource;
-
-export interface ConflictIncident {
-  readonly lessonIds: readonly [string, string];
-  readonly date: LocalDate;
-  readonly overlap: {
-    readonly start: LocalTime;
-    readonly end: LocalTime;
-  };
-  readonly resources: readonly ConflictResource[];
-  readonly lessons: readonly [LessonSummary, LessonSummary];
-}
-
-export interface ConflictReport {
-  readonly date: LocalDate;
-  readonly checksApplied: readonly ['tutor-overlap', 'room-overlap'];
-  readonly checksDeferred: readonly ['student-overlap', 'daily-cap', 'operating-day'];
-  readonly incidentCount: number;
-  readonly incidents: readonly ConflictIncident[];
-}
-
 export function parseLocalDate(value: string): LocalDate {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) throw new Error('date must be YYYY-MM-DD');
@@ -108,11 +61,21 @@ export function parseLocalTime(value: string, label = 'time'): LocalTime {
   return value as LocalTime;
 }
 
+export function parseOffsetDateTime(value: string, label = 'timestamp'): string {
+  const format = /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/;
+  if (!format.test(value)) {
+    throw new Error(`${label} must be an ISO timestamp with an explicit offset`);
+  }
+  parseLocalDate(value.slice(0, 10));
+  if (!Number.isFinite(Date.parse(value))) {
+    throw new Error(`${label} must be a valid timestamp`);
+  }
+  return value;
+}
+
 export function localTimeToMinutes(value: LocalTime): number {
   const [hoursText, minutesText] = value.split(':');
-  const hours = Number(hoursText);
-  const minutes = Number(minutesText);
-  return hours * 60 + minutes;
+  return Number(hoursText) * 60 + Number(minutesText);
 }
 
 export function minutesToLocalTime(minutes: number): LocalTime {

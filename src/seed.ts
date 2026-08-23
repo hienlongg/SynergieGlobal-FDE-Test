@@ -10,7 +10,8 @@ import {
   localTimeToMinutes,
   minutesToLocalTime,
   parseLocalDate,
-  parseLocalTime
+  parseLocalTime,
+  parseOffsetDateTime
 } from './domain';
 
 const LESSON_HEADERS = [
@@ -94,7 +95,7 @@ export function parseCsv(text: string): CsvDocument {
 
   const headers = rows[0] ?? [];
   const records = rows.slice(1)
-    .filter((fields) => fields.some((value) => value.length > 0))
+    .filter((fields) => !(fields.length === 1 && fields[0] === ''))
     .map((fields, rowIndex) => {
       if (fields.length !== headers.length) {
         throw new Error(`CSV row ${rowIndex + 2} has ${fields.length} fields; expected ${headers.length}`);
@@ -145,8 +146,24 @@ function parseLesson(row: CsvRecord, tutorIds: ReadonlySet<string>): Lesson {
   const startTime = parseLocalTime(required(row, 'start_time', lessonId), `Start time on ${lessonId}`);
   const startMinutes = localTimeToMinutes(startTime);
   const durationText = required(row, 'duration_min', lessonId);
+  if (!/^\d+$/.test(durationText)) throw new Error(`Invalid duration on ${lessonId}`);
   const durationMin = Number(durationText);
-  if (!Number.isInteger(durationMin) || durationMin <= 0) throw new Error(`Invalid duration on ${lessonId}`);
+  if (!Number.isSafeInteger(durationMin) || durationMin <= 0) throw new Error(`Invalid duration on ${lessonId}`);
+
+  const cancelledAt = row.cancelled_at || null;
+  if (statusText === 'cancelled' && !cancelledAt) {
+    throw new Error(`Missing cancelled_at on ${lessonId}`);
+  }
+  if (statusText !== 'cancelled' && cancelledAt) {
+    throw new Error(`Unexpected cancelled_at on ${lessonId}`);
+  }
+  if (cancelledAt) {
+    try {
+      parseOffsetDateTime(cancelledAt, 'cancelled_at');
+    } catch {
+      throw new Error(`Invalid cancelled_at on ${lessonId}`);
+    }
+  }
 
   const endMinutes = startMinutes + durationMin;
   const endTime = minutesToLocalTime(endMinutes);
@@ -162,7 +179,7 @@ function parseLesson(row: CsvRecord, tutorIds: ReadonlySet<string>): Lesson {
     tutorId,
     roomId: required(row, 'room', lessonId),
     status: statusText as LessonStatus,
-    cancelledAt: row.cancelled_at || null,
+    cancelledAt,
     note: row.note || null
   };
 }

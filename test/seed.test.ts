@@ -88,6 +88,24 @@ test('seed loader rejects malformed rows and domain values', async (t) => {
       assert.throws(() => loadSeed(root), /24-hour HH:MM/);
     });
   });
+  await t.test('non-decimal duration', () => {
+    const row = VALID_LESSON.replace(',60,', ',1e2,');
+    withFixture(TUTORS, `${LESSON_HEADER}\n${row}\n`, (root) => {
+      assert.throws(() => loadSeed(root), /Invalid duration/);
+    });
+  });
+  await t.test('cancelled lesson without cancellation timestamp', () => {
+    const row = VALID_LESSON.replace(',booked,,', ',cancelled,,');
+    withFixture(TUTORS, `${LESSON_HEADER}\n${row}\n`, (root) => {
+      assert.throws(() => loadSeed(root), /Missing cancelled_at/);
+    });
+  });
+  await t.test('booked lesson with cancellation timestamp', () => {
+    const row = VALID_LESSON.replace(',booked,,', ',booked,2026-03-03T08:00:00+07:00,');
+    withFixture(TUTORS, `${LESSON_HEADER}\n${row}\n`, (root) => {
+      assert.throws(() => loadSeed(root), /Unexpected cancelled_at/);
+    });
+  });
   await t.test('impossible lesson date', () => {
     const row = VALID_LESSON.replace(',2026-03-03,', ',2026-02-30,');
     withFixture(TUTORS, `${LESSON_HEADER}\n${row}\n`, (root) => {
