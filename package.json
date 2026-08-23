@@ -1,0 +1,13 @@
+{
+  "name": "bright-path-conflict-report",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Explainable tutor and room conflict detection for Bright Path Learning Centre.",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
